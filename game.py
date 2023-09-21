@@ -5,7 +5,7 @@ import pygame
 import sys
 import math
 from grid import grid
-from algo import get_next_direction
+from algo import get_next_coordinate
 from constants import BLACK, BLUE, RED, WHITE, YELLOW, o, e, I, O, c
 
 GRID_SIZE = 20  
@@ -42,7 +42,7 @@ while running:
     elapsed_time = (current_time - start_time) // 1000 
 
     current_x, current_y = pacman_x, pacman_y
-    path = get_next_direction(grid, (current_x, current_y))
+    path = get_next_coordinate(grid, (current_x, current_y))
     
     if path is None or len(path) == 0 or path[0] is None:
         print("Invalid Path. Try something else")

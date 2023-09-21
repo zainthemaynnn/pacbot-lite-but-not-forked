@@ -10,7 +10,7 @@ o = 2 -> Pellet (Small Dot)
 e = 3 -> Empty
 """
 
-def get_next_direction(grid, start):
+def get_next_coordinate(grid, location):
     # modify this algorithm to find the next direction to move in
     # return value in the form of [x, y]
-    return start
+    return location
