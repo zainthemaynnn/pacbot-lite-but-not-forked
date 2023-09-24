@@ -2,7 +2,7 @@
 # o = normal pellet, e = empty space, O = power pellet, c = cherry position
 # I = wall, n = ghost chambers
 
-I = 1 
+I = 1
 o = 2
 e = 3
 O = 4
