@@ -4,6 +4,14 @@ from constants import *
 from grid import grid
 import numpy as np
 from enum import Enum
+import networkx as nx
+import matplotlib.pyplot as plt
+
+START_COORD = (14, 7)
+# whether the eulerian tour includes empty intersections.
+# I'm trying both. whichever value I submitted was better.
+# there's probably a faster way than both though.
+WALK_EMPTY_PATHS = False
 
 Direction = Enum("Direction", ["UP", "DOWN", "LEFT", "RIGHT"])
 
@@ -42,31 +50,40 @@ def dvec(direction):
         return (1, 0)
 
 
-class Graph:
-    def __init__(self, nodes, edges):
-        self.nodes = nodes
-        self.edges = edges
+def linear_path(p0, p1):
+    """returns all points from p0 to p1"""
+    path = []
+    direction = (p1[0] - p0[0], p1[1] - p0[1])
+    dist = 1e7
+    if abs(direction[0]) > 0:
+        direction = (abs(direction[0]) / direction[0], 0)
+        dist = abs(direction[0])
+    else:
+        direction = (0, abs(direction[1]) / direction[1])
+        dist = abs(direction[1])
 
+    while p0 != p1:
+        p0 = (p0[0] + direction[0], p0[1] + direction[1])
+        path.append(p0)
 
-class Edge:
-    def __init__(self, src, dst, weight):
-        self.src = src
-        self.dst = dst
-        self.weight = weight
+    return path
 
 
 def construct_graph(grid):
-    visited = {}
-    nodes = []
-    edges = []
+    """
+    creates a graph based on every point with a turn/intersection
+    """
 
-    nodes.append((1, 1))
-    visited[(1, 1)] = True
-    queue = [((1, 1), adjacent(grid, 1, 1))]
+    graph = g = nx.Graph()
+
+    # bfs for graph nodes
+    graph.add_node(START_COORD)
+    queue = [(START_COORD, adjacent(grid, START_COORD[0], START_COORD[1]))]
 
     while len(queue) > 0:
         for q in list(queue):
             queue.pop(0)
+
             o = q[0]
             paths = q[1]
 
@@ -75,28 +92,30 @@ def construct_graph(grid):
                 t = dvec(d)
                 weight = 0
 
-                while weight == 0 or len(adjacent(grid, p[0], p[1])) == 2:
-                    if not traversible(grid[p[0] + t[0]][p[1] + t[1]]):
-                        t = dvec(
-                            next(
-                                filter(
-                                    lambda nd: t != neg(dvec(nd)),
-                                    adjacent(grid, p[0], p[1]),
-                                )
-                            )
-                        )
+                # update the path length (weight) until it hits a wall/intersection
+                while (
+                    weight == 0
+                    or len(adjacent(grid, p[0], p[1])) == 2
+                    and traversible(grid[p[0] + t[0]][p[1] + t[1]])
+                ):
                     p = (p[0] + t[0], p[1] + t[1])
                     weight += 1
 
-                if weight > 0:
-                    if not visited.get(p):
-                        visited[p] = True
-                        nodes.append(p)
-                        queue.append((p, adjacent(grid, p[0], p[1])))
-                    # probably a faster way to do this, but eh
-                    edges.append(Edge(nodes.index(o), nodes.index(p), weight))
+                if weight == 0 or not WALK_EMPTY_PATHS and grid[p[0]][p[1]] == e:
+                    continue
 
-    return Graph(nodes, edges)
+                if not graph.has_node(p):
+                    graph.add_node(p)
+                    queue.append((p, adjacent(grid, p[0], p[1])))
+                graph.add_edge(o, p, weight=weight)
+
+    return graph
+
+
+def generate_path(graph):
+    euler_graph = nx.euler.eulerize(graph)
+    euler_path = nx.euler.eulerian_path(euler_graph, source=START_COORD, keys=True)
+    return ((int(x), int(y)) for (p, o, _) in euler_path for (x, y) in linear_path(p, o))
 
 
 """
@@ -107,19 +126,10 @@ e = 3 -> Empty
 """
 
 
-def get_next_coordinate(grid, location):
+def get_next_coordinate(path_gen):
     """
     Calculate the next coordinate for 6ix-pac to move to.
     Check if the next coordinate is a valid move.
-
-    Parameters:
-    - grid (list of lists): A 2D array representing the game board.
-    - location (list): The current location of the 6ix-pac in the form (x, y).
-
-    Returns:
-    - list or tuple:
-        - If the next coordinate is valid, return the next coordinate in the form (x, y) or [x,y].
-        - If the next coordinate is invalid, return None.
     """
 
-    return location
+    return next(path_gen, None)

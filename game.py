@@ -4,7 +4,7 @@ import pygame
 import sys
 import math
 from grid import grid
-from algo import get_next_coordinate, construct_graph
+from algo import get_next_coordinate, construct_graph, generate_path
 from constants import BLACK, BLUE, RED, WHITE, YELLOW, o, e, I, O, c
 
 GRID_SIZE = 20
@@ -30,6 +30,7 @@ score = 0
 running = True
 
 graph = construct_graph(grid)
+path_gen = generate_path(graph)
 
 while running:
     for event in pygame.event.get():
@@ -43,7 +44,7 @@ while running:
     elapsed_time = (current_time - start_time) // 1000
 
     current_x, current_y = pacman_x, pacman_y
-    path = get_next_coordinate(graph, (current_x, current_y))
+    path = get_next_coordinate(path_gen)
 
     if path is None or len(path) == 0 or path[0] is None:
         print("Invalid Path. Try something else")
