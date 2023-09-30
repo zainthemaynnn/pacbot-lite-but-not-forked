@@ -113,7 +113,30 @@ def construct_graph(grid):
 
 
 def generate_path(graph):
-    euler_graph = nx.euler.eulerize(graph)
+    subgraph = nx.Graph()
+
+    # find all nodes with an odd degree
+    for p, neighbors in graph.adj.items():
+        if len(neighbors) % 2 != 0:
+            for o, eattr in neighbors.items():
+                subgraph.add_node(p)
+
+    # compute the distances between odd nodes using dijkstra's
+    dists = dict(nx.all_pairs_shortest_path_length(graph))
+    paths = dict(nx.all_pairs_shortest_path(graph))
+    for p in subgraph.nodes:
+        for o in subgraph.nodes:
+            subgraph.add_edge(p, o, weight=dists[p][o])
+
+    # create a minimum weight maximal matching from the points,
+    # and connect them in the real graph
+    euler_graph = nx.MultiGraph(graph)
+    for (p, o) in nx.matching.min_weight_matching(subgraph):
+        u = p
+        for v in paths[p][o][1:]:
+            euler_graph.add_edge(u, v, weight=graph[u][v]["weight"])
+            u = v
+
     euler_path = nx.euler.eulerian_path(euler_graph, source=START_COORD, keys=True)
     return ((int(x), int(y)) for (p, o, _) in euler_path for (x, y) in linear_path(p, o))
 
